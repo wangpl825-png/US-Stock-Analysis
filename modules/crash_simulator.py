@@ -14,7 +14,7 @@ class CrashProbabilitySimulator:
         end_date = datetime.today()
         start_date = end_date - timedelta(days=365)
         # 靜默下載避免干擾 UI
-        data = yf.download([self.market_ticker] + self.macro_tickers, start=start_date, end=end_date, progress=False)['Adj Close']
+        data = yf.download([self.market_ticker] + self.macro_tickers, start=start_date, end=end_date, progress=False)['Close']
         return data.dropna()
 
     def calculate_left_tail_risk(self, data, days_ahead=21, simulations=5000, crash_threshold=-0.15):
