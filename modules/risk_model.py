@@ -27,7 +27,7 @@ class PortfolioRiskModel:
         
         # 加上 SPY 作為計算 Beta 的基準
         all_tickers = self.tickers + ['SPY']
-        data = yf.download(all_tickers, start=start_date, end=end_date)['Adj Close']
+        data = yf.download(all_tickers, start=start_date, end=end_date)['Close']
         
         # 取最近 252 個交易日
         return data.tail(252).dropna()
