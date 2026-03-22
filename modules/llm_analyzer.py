@@ -4,14 +4,36 @@ import streamlit as st
 
 class MarketAnalyzer:
     def __init__(self):
-        # 改為直接從 Streamlit 的保險箱抓取金鑰，最穩定不會出錯
         try:
             api_key = st.secrets["GEMINI_API_KEY"]
         except KeyError:
-            raise ValueError("找不到 GEMINI_API_KEY，請確認 Streamlit Secrets 是否有正確設定。")
+            raise ValueError("找不到 GEMINI_API_KEY，請確認 Streamlit Secrets 設定。")
             
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        
+        # --- 🚀 終極解法：動態偵測可用的模型 ---
+        available_models = []
+        try:
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    available_models.append(m.name)
+        except Exception as e:
+            raise ValueError(f"無法獲取模型列表，請確認 API Key 權限。錯誤: {e}")
+            
+        if not available_models:
+            raise ValueError("您的 API Key 目前沒有配置任何支援文字生成的模型。")
+            
+        # 優先尋找 1.5 flash，找不到就用列表裡的第一個可用模型
+        target_model_name = available_models[0]
+        for name in available_models:
+            if 'gemini-1.5-flash' in name:
+                target_model_name = name
+                break
+            elif 'gemini-1.0-pro' in name:
+                target_model_name = name
+                
+        self.model = genai.GenerativeModel(target_model_name)
+        self.used_model = target_model_name # 記錄下來給 UI 顯示
 
     def get_market_news(self, ticker="SPY"):
         """透過 yfinance 免費抓取最新大盤新聞標題"""
@@ -46,7 +68,7 @@ class MarketAnalyzer:
         """
         try:
             response = self.model.generate_content(prompt)
-            return response.text
+            # 在策略開頭標示我們到底成功呼叫了哪個模型，方便確認
+            return f"*(本策略由 `{self.used_model}` 生成)*\n\n" + response.text
         except Exception as e:
-            # 這裡我們把真實的錯誤原因 e 直接印出來！
-            return f"❌ AI 呼叫失敗！系統回報的真實錯誤訊息為：\n\n`{str(e)}`\n\n請將這段錯誤訊息貼給你的 AI 助手看。"
+            return f"❌ AI 呼叫失敗！系統回報的真實錯誤訊息為：\n\n`{str(e)}`"
