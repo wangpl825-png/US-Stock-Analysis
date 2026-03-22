@@ -1,16 +1,16 @@
 import google.generativeai as genai
 import yfinance as yf
-import os
+import streamlit as st
 
 class MarketAnalyzer:
     def __init__(self):
-        # 自動從 Streamlit Secrets 中讀取金鑰
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("找不到 GEMINI_API_KEY，請確認 Streamlit Secrets 設定。")
+        # 改為直接從 Streamlit 的保險箱抓取金鑰，最穩定不會出錯
+        try:
+            api_key = st.secrets["GEMINI_API_KEY"]
+        except KeyError:
+            raise ValueError("找不到 GEMINI_API_KEY，請確認 Streamlit Secrets 是否有正確設定。")
             
         genai.configure(api_key=api_key)
-        # 使用速度快且免費額度高的 flash 模型
         self.model = genai.GenerativeModel('gemini-1.5-flash')
 
     def get_market_news(self, ticker="SPY"):
@@ -42,10 +42,11 @@ class MarketAnalyzer:
 
         請用繁體中文回答，包含：
         1. 📊 市場情緒總結 (一句話)。
-        2. 🛡️ 具體避險操作建議 (針對此 Beta 值與崩盤機率，給出兩點具體的資產配置建議，例如調整現金比例或增加防禦性類股)。
+        2. 🛡️ 具體避險操作建議 (針對此 Beta 值與崩盤機率，給出兩點具體的資產配置建議)。
         """
         try:
             response = self.model.generate_content(prompt)
             return response.text
         except Exception as e:
-            return f"AI 分析暫時無法使用，請檢查 API 額度或連線狀態。"
+            # 這裡我們把真實的錯誤原因 e 直接印出來！
+            return f"❌ AI 呼叫失敗！系統回報的真實錯誤訊息為：\n\n`{str(e)}`\n\n請將這段錯誤訊息貼給你的 AI 助手看。"
