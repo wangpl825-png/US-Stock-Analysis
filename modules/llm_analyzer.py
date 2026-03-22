@@ -11,7 +11,7 @@ class MarketAnalyzer:
             raise ValueError("找不到 GEMINI_API_KEY，請確認 Streamlit Secrets 是否有正確設定。")
             
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-pro')
 
     def get_market_news(self, ticker="SPY"):
         """透過 yfinance 免費抓取最新大盤新聞標題"""
