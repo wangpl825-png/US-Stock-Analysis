@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
 from modules.risk_model import PortfolioRiskModel
+from modules.crash_simulator import CrashProbabilitySimulator
 
 # --- 1. 頁面與 UI 設定 ---
 st.set_page_config(page_title="量化投資風險分析", layout="wide", initial_sidebar_state="expanded")
@@ -55,7 +56,7 @@ if analyze_button:
             st.success("✅ 運算完成！")
 
             # --- 建立頁籤以分類資訊 (適合手機瀏覽) ---
-            tab1, tab2 = st.tabs(["🎲 蒙地卡羅常態預測", "⛈️ 歷史崩盤壓力測試"])
+            tab1, tab2, tab3 = st.tabs(["🎲 蒙地卡羅預測", "⛈️ 壓力測試", "🚨 崩盤預警系統"])
 
             with tab1:
                 st.subheader(f"未來 {days_ahead} 個交易日後之資產分佈預測")
@@ -103,6 +104,40 @@ if analyze_button:
                     st.warning("⚠️ 您的投資組合波動性顯著高於大盤，在系統性風險發生時將承受較大回撤，建議增加低相關性資產（如美債）進行避險。")
                 elif beta < 0.8:
                     st.info("💡 您的投資組合具備一定的抗跌特性。")
+
+            with tab3:
+                st.subheader("未來一個月系統性崩盤機率評估")
+                st.markdown("綜合大盤左尾風險 (Left-tail Risk) 與總體經濟指標 (Macro Indicators) 之量化預測。")
+                
+                with st.spinner('正在分析總體經濟指標與市場波動率...'):
+                    crash_sim = CrashProbabilitySimulator()
+                    final_prob, left_tail, penalty, messages = crash_sim.get_crash_probability()
+                    
+                    # 依據機率給予不同的顏色與警告層級
+                    if final_prob < 15:
+                        status_color = "normal"
+                        risk_level = "🟢 低風險 (Low Risk)"
+                    elif final_prob < 40:
+                        status_color = "off"
+                        risk_level = "🟡 中度警戒 (Elevated Risk)"
+                    else:
+                        status_color = "inverse"
+                        risk_level = "🔴 極度危險 (Critical Risk)"
+
+                    # 顯示大指標
+                    st.metric(label=f"當前市場狀態: {risk_level}", value=f"{final_prob:.1f}%", delta=f"總經懲罰權重: +{penalty}%", delta_color=status_color)
+                    st.progress(final_prob / 100.0)
+                    
+                    st.divider()
+                    st.markdown("### 📊 系統診斷報告 (Diagnostic Report)")
+                    st.write(f"- **純數學極端左尾機率**: {left_tail:.2f}% (大盤單月暴跌 15% 以上之自然機率)")
+                    
+                    if messages:
+                        st.markdown("#### ⚠️ 觸發之總經警報：")
+                        for msg in messages:
+                            st.warning(msg)
+                    else:
+                        st.success("✅ 目前總體經濟與情緒指標未出現明顯異常，各項 Vital Signs 穩定。")
 
         except Exception as e:
             st.error(f"❌ 運算過程中發生錯誤: {e}")
