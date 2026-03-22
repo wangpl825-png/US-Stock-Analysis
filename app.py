@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from modules.risk_model import PortfolioRiskModel
 from modules.crash_simulator import CrashProbabilitySimulator
+from modules.llm_analyzer import MarketAnalyzer
+import os
 
 # --- 1. 頁面與 UI 設定 ---
 st.set_page_config(page_title="量化投資風險分析", layout="wide", initial_sidebar_state="expanded")
@@ -138,6 +140,21 @@ if analyze_button:
                             st.warning(msg)
                     else:
                         st.success("✅ 目前總體經濟與情緒指標未出現明顯異常，各項 Vital Signs 穩定。")
+                        st.divider()
+                  st.markdown("### 🤖 AI 量化顧問避險建議")
+
+                  if st.button("✨ 產生專屬避險策略"):
+                      with st.spinner('AI 正在閱讀最新市場新聞並計算策略...'):
+                          try:
+                              # 為了能在本地與雲端都能抓到 key，先做環境變數處理
+                              if "GEMINI_API_KEY" in st.secrets:
+                                  os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
+
+                              analyzer = MarketAnalyzer()
+                              strategy = analyzer.generate_hedging_strategy(final_prob, beta)
+                              st.info(strategy)
+                          except Exception as e:
+                              st.error(f"無法啟動 AI 顧問，請確認 API Key 是否設定正確。錯誤訊息: {e}")
 
         except Exception as e:
             st.error(f"❌ 運算過程中發生錯誤: {e}")
